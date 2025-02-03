@@ -54,4 +54,21 @@ def calc_k_nearest_neighbors(data_NF, query_QF, K=1):
     #       At each q value, compute distances to all N neighbors
     #                        then find the K closest neighbors
     #                        then fill neighb_QKF with neighbors' features
-    return None
+    Q_dist = []
+    for i in range(Q):
+        distance = []
+        for j in range(N):
+            dist = 0
+            for k in range(F):
+                dist += (query_QF[i,k] - data_NF[j,k])**2
+            distance.append(np.sqrt(dist))
+        Q_dist.append(distance)
+    dist_arr = np.array(Q_dist)
+    for i in range(Q):
+        smallest = np.partition(dist_arr[i], K)[:K]
+        for j in range(K):
+            small = np.sort(smallest)[j]
+            index = Q_dist[i].index(small)
+            Q_dist[i][index] = "used"
+            neighb_QKF[i,j] = data_NF[index]
+    return neighb_QKF

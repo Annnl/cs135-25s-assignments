@@ -69,8 +69,14 @@ def split_into_train_and_test(x_all_LF, frac_test=0.5, random_state=None):
     M = L - N
 
     # TODO use the first M row ids in shuffled_ids_L to make x_train_MF
+    x_train_MF = np.zeros((M,F))
+    for i in range(M):
+        x_train_MF[i]=x_all_LF[shuffled_ids_L[i]]
     # TODO use the remaining N row ids to make x_test_NF
+    x_test_NF = np.zeros((N,F))
+    for i in range(N):
+        x_test_NF[i]=x_all_LF[shuffled_ids_L[i+M]]
     # HINT Use integer indexing in the lab notebook on numerical python
 
     # TODO return both x_train_MF and x_test_NF
-    return None, None
+    return x_train_MF, x_test_NF
