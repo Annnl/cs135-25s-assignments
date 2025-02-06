@@ -33,8 +33,14 @@ def calc_root_mean_squared_error(y_N, yhat_N):
         .. math:
             rmse(y,\hat{y}) = \sqrt{\frac{1}{N} \sum_{n=1}^N (y_n - \hat{y}_n)^2}
     '''
+    sum_error = 0
+    if str(type(y_N)) ==("<class 'float'>" or "<class 'int'>"):
+        return abs(y_N - yhat_N)
+    N = len(y_N)
     y_N = np.atleast_1d(y_N)
     yhat_N = np.atleast_1d(yhat_N)
     assert y_N.ndim == 1
     assert y_N.shape == yhat_N.shape
-    return 0.0  # TODO fixme
+    for i in range(N):
+        sum_error += (y_N[i] - yhat_N[i])**2
+    return  np.sqrt(sum_error/N)

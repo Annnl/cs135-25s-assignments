@@ -70,7 +70,6 @@ import numpy as np
 
 from performance_metrics import calc_root_mean_squared_error
 
-
 def train_models_and_calc_scores_for_n_fold_cv(
         estimator, x_NF, y_N, n_folds=3, random_state=0):
     ''' Perform n-fold cross validation for a specific sklearn estimator object
@@ -100,15 +99,32 @@ def train_models_and_calc_scores_for_n_fold_cv(
         Entry f gives the error computed for test set for fold f
 
     '''
+    N, F = x_NF.shape
     train_error_per_fold = np.zeros(n_folds, dtype=np.float32)
     test_error_per_fold = np.zeros(n_folds, dtype=np.float32)
 
     # TODO define the folds here by calling your function
-    # e.g. ... = make_train_and_test_row_ids_for_n_fold_cv(...)
+    train_ids_per_fold, test_ids_per_fold = make_train_and_test_row_ids_for_n_fold_cv(N,n_folds,random_state)
 
     # TODO loop over folds and compute the train and test error
     # for the provided estimator
-
+    for i in range(n_folds):
+        train_x = []
+        train_y = []
+        test_x = []
+        test_y = []
+        for j in train_ids_per_fold[i]:
+            train_x.append(x_NF[j])
+            train_y.append(y_N[j])
+        for j in test_ids_per_fold[i]:
+            test_x.append(x_NF[j])
+            test_y.append(y_N[j])
+        
+        estimator.fit(train_x, train_y)
+        predict_y1 = estimator.predict(train_x)
+        predict_y2 = estimator.predict(test_x)
+        train_error_per_fold[i]=calc_root_mean_squared_error(train_y, predict_y1)
+        test_error_per_fold[i]=calc_root_mean_squared_error(test_y, predict_y2)
     return train_error_per_fold, test_error_per_fold
 
 
@@ -158,8 +174,18 @@ def make_train_and_test_row_ids_for_n_fold_cv(
     test_ids_per_fold = list()
 
     # TODO obtain a shuffled order of the n_examples
+    row_ids = random_state.permutation(n_examples)
+    folds = np.array_split(row_ids, n_folds)
     # TODO loop over folds, establish which indices belong each fold
+    for i in range(n_folds):
     # TODO assign those indices to the fold's test set
+        test_data = list(folds[i])
     # TODO assign remaining indices to the fold's train set
+        train_data=[]
+        for j in range(n_folds):
+            if j!=i:
+                train_data += list(folds[j])
+        test_ids_per_fold.append(test_data)
+        train_ids_per_fold.append(train_data)
 
     return train_ids_per_fold, test_ids_per_fold

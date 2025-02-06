@@ -78,7 +78,10 @@ class LeastSquaresLinearRegressor(object):
                 \sum_{n=1}^N (y_n - b - \sum_f x_{nf} w_f)^2
         '''
         N, F = x_NF.shape
-
+        X_new=np.hstack((x_NF,np.ones((N,1))))
+        theta = np.linalg.solve(X_new.T @ X_new,X_new.T @ y_N)
+        self.b = theta[-1]
+        self.w_F = theta[0:F]
         # Hint: Use np.linalg.solve
         # Using np.linalg.inv may cause issues (see day03 lab)
         pass  # TODO fixme
@@ -97,8 +100,10 @@ class LeastSquaresLinearRegressor(object):
         yhat_M : 1D array, size M
             Each value is the predicted scalar for one example
         '''
+        
+        yhat_M = self.b + self.w_F @ x_MF.T
         # TODO FIX ME
-        return np.asarray([0.0])
+        return yhat_M
 
 
 def test_on_toy_data(N=100):
