@@ -185,7 +185,7 @@ def make_train_and_test_row_ids_for_n_fold_cv(
         for j in range(n_folds):
             if j!=i:
                 train_data += list(folds[j])
-        test_ids_per_fold.append(test_data)
-        train_ids_per_fold.append(train_data)
+        test_ids_per_fold.append(np.array(test_data))
+        train_ids_per_fold.append(np.array(train_data))
 
     return train_ids_per_fold, test_ids_per_fold
