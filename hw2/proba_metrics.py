@@ -146,17 +146,21 @@ def calc_mean_BCE_from_probas(ytrue_N, yproba1_N):
     '''
     # Cast labels to integer just to be sure we're getting what's expected
     ytrue_N = np.asarray(ytrue_N, dtype=np.int32)
+    N = int(ytrue_N.size)
+    if N == 0:return 0.0
     assert np.min(ytrue_N) >= 0
     assert np.max(ytrue_N) <= 1
-    N = int(ytrue_N.size)
+    
     # Cast probas to float and be sure we're between zero and one
     yproba1_N = np.asarray(yproba1_N, dtype=np.float64)           # dont touch
     yproba1_N = np.maximum(1e-14, np.minimum(1-1e-14, yproba1_N))  # dont touch
 
     # TODO compute BCE. Be sure to handle empty input lists properly
     bce = 0.0  # TODO fix me
-
-    return None  # TODO fix me
+    if len(ytrue_N) != 0 and len(yproba1_N) !=0:
+        coll_bce = -ytrue_N*np.log2(yproba1_N)-(1-ytrue_N)*np.log2(1-yproba1_N)
+        bce = np.mean(coll_bce)
+    return bce  # TODO fix me
 
 
 def calc_mean_BCE_from_scores(ytrue_N, scores_N):
@@ -198,7 +202,7 @@ def calc_mean_BCE_from_scores(ytrue_N, scores_N):
     # Cast labels to integer just to be sure we're getting what's expected
     ytrue_N = np.asarray(ytrue_N, dtype=np.int32)
     N = int(ytrue_N.size)
-
+    if N ==0:return 0.0
     # Convert binary y values so 0 becomes +1 and 1 becomes -1
     # See HW2 instructions on website for the math
     yflipsign_N = -1 * np.sign(ytrue_N-0.001)  # dont touch
@@ -206,12 +210,13 @@ def calc_mean_BCE_from_scores(ytrue_N, scores_N):
     # Cast logit scores to float
     scores_N = np.asarray(scores_N, dtype=np.float64)  # dont touch
 
-    flipped_scores_N = np.zeros(N)  # TODO fix me: flip(y_n) s_n
+    flipped_scores_N = yflipsign_N*scores_N  # TODO fix me: flip(y_n) s_n
 
     # Next, stack up two arrays of shape (N,1) to form result of (N,2)
     # First column should be all zero
     # Second column should be flipped_scores_N
-    scores_and_zeros_N2 = np.zeros((N, 2))  # TODO fix me
+    zeros = np.zeros((N, 1))
+    scores_and_zeros_N2 = np.hstack((zeros, flipped_scores_N.reshape(-1, 1)))  # TODO fix me
 
     # Compute the ultimate BCE score
     # Use scipy_logsumexp from scipy (already imported)
@@ -221,5 +226,6 @@ def calc_mean_BCE_from_scores(ytrue_N, scores_N):
     # >>> ans_B = scipy_logsumexp(in_AB, axis=0) # apply logsumexp to each col
 
     bce_score = 0.0  # TODO fix me
-
-    return None  # TODO fix me
+    if len(ytrue_N) != 0 and len(scores_N) !=0:
+        bce_score = scipy_logsumexp(scores_and_zeros_N2, axis=1)/(np.log(2))
+    return np.mean(bce_score)  # TODO fix me
