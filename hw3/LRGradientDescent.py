@@ -163,13 +163,13 @@ class LogisticRegressionGradientDescent():
                 + " Must call 'fit' before 'predict_proba'."
                 + " Set args carefully to ensure fit did not diverge.")
         N = x_NF.shape[0]
-        w_F = None  # TODO unpack weight coefs from internal attribute wtil_G
-        bias = -1.0  # TODO unpack bias coef from internal attribute wtil_G
-        z_N = np.zeros(N)  # TODO compute weights times x plus b
-        proba1_N = 1.0 * z_N  # TODO use 'logistic_sigmoid' to make probas
-        proba0_N = None      # TODO convert probas of y=1 to probas of y=0
+        w_F = self.wtil_G[:-1]  # TODO unpack weight coefs from internal attribute wtil_G
+        bias = self.wtil_G[-1]  # TODO unpack bias coef from internal attribute wtil_G
+        z_N = w_F.T @ x_NF + bias  # TODO compute weights times x plus b
+        proba1_N = logistic_sigmoid(z_N)  # TODO use 'logistic_sigmoid' to make probas
+        proba0_N = 1 - proba1_N     # TODO convert probas of y=1 to probas of y=0
 
-        proba_N2 = 0.5 + np.zeros((N, 2))  # TODO returnval fulfill docstring
+        proba_N2 = np.hstack(proba0_N,proba1_N)  # TODO returnval fulfill docstring
         return proba_N2
 
     def predict(self, x_NF):
@@ -192,7 +192,7 @@ class LogisticRegressionGradientDescent():
                 + " Set args carefully to ensure fit did not diverge.")
         thr = self.proba_to_binary_threshold  # Unpack threshold
         proba_N2 = self.predict_proba(x_NF)
-        yhat_bool_N = proba_N2.min(axis=1) < thr  # TODO fixme
+        yhat_bool_N = proba_N2(axis=1) < thr  # TODO fixme
         yhat_int_N = np.asarray(yhat_bool_N, dtype=np.int32)
         return yhat_int_N
 
@@ -246,10 +246,10 @@ class LogisticRegressionGradientDescent():
         for iter_id in range(self.num_iterations + 1):
             if iter_id > 0:
                 # TODO update parameter using self's 'step_size' attribute
-                wtil_G = wtil_G - 0  # <- TODO replace this line
+                wtil_G = wtil_G - self.step_size* self.calc_grad(wtil_G, xone_NG, y_N) # <- TODO replace this line
 
-            loss = 4.321                      # TODO call calc_loss
-            grad_G = 1.234 + np.zeros(self.G)  # TODO call calc_grad
+            loss = self.calc_loss(wtil_G, xone_NG, y_N)  # TODO call calc_loss
+            grad_G = self.calc_grad(wtil_G, xone_NG, y_N) # TODO call calc_grad
             avg_L1_norm_of_grad = np.mean(np.abs(grad_G))
 
             # Print information to stdout
@@ -317,12 +317,26 @@ class LogisticRegressionGradientDescent():
         N = float(y_N.size)
         G = wtil_G.size
         C = float(self.C)
-
+        w_F = wtil_G[:-1] 
         # First term: Calc loss due to L2 penalty on weights
-        L2_loss = 0.0  # TODO fixme. Remember to omit the bias coef from this.
+        L2_loss = 0.5*w_F.T @ w_F  # TODO fixme. Remember to omit the bias coef from this.
+
+
+        ytrue_N = np.asarray(y_N, dtype=np.int32)
+
+        # Convert binary y values so 0 becomes +1 and 1 becomes -1
+        # See HW2 instructions on website for the math
+        yflipsign_N = -1 * np.sign(ytrue_N-0.001)  # dont touch
+
+        flipped_scores_N = yflipsign_N*xone_NG.dot(wtil_G)  # TODO fix me: flip(y_n) s_n
+
+        # Next, stack up two arrays of shape (N,1) to form result of (N,2)
+        # First column should be all zero
+        # Second column should be flipped_scores_N
+        scores_and_zeros_N2 = np.column_stack((np.zeros(int(N)), flipped_scores_N))
 
         # Second term: Calc scoreBCE summed over all examples in dataset
-        sumBCE_loss = 0.0  # TODO fixme. Use base e.
+        sumBCE_loss = logsumexp(scores_and_zeros_N2, axis=1)  # TODO fixme. Use base e.
 
         # Conversion to base 2. Done for you.
         if self.use_base2_for_BCE:
@@ -351,10 +365,9 @@ class LogisticRegressionGradientDescent():
         N = float(y_N.size)
         G = wtil_G.size
         C = float(self.C)
-
-        grad_L2_wrt_wtil_G = np.zeros(G)  # TODO fixme.
-
-        grad_sumBCE_wrt_wtil_G = np.zeros(G)  # TODO fixme.
+        grad_L2_wrt_wtil_G = wtil_G[:-1].append(0) # TODO fixme.
+        x_prob = self.predict_proba(xone_NG)[:,:-1]
+        grad_sumBCE_wrt_wtil_G = (x_prob - y_N) @ xone_NG # TODO fixme.
 
         # Convert to base 2. Already done for you.
         if self.use_base2_for_BCE:
@@ -362,7 +375,7 @@ class LogisticRegressionGradientDescent():
 
         # TODO create total gradient array.
         # Be sure to handle the rescaling by C and N correctly.
-        grad_G = grad_L2_wrt_wtil_G + grad_sumBCE_wrt_wtil_G  # TODO fixme
+        grad_G = (grad_L2_wrt_wtil_G + C * grad_sumBCE_wrt_wtil_G) / (N * C)  # TODO fixme
         return grad_G
 
     # Helper methods
