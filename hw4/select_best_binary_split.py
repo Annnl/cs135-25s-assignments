@@ -120,9 +120,28 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
         # Hint 2: look below at how we assemble the left and right child 
         left_yhat_V = np.zeros(V) # TODO fixme
         right_yhat_V = np.ones(V) # TODO fixme
-        left_cost_V = np.zeros(V) # TODO fixme
-        right_cost_V = np.ones(V) # TODO fixme
-        total_cost_V = left_cost_V + right_cost_V
+        total_cost_V = np.ones(V) # TODO fixme
+        for v in range(V):
+            thresh = possib_xthresh_V[v]
+            left_mask = x_NF[:, f] < thresh
+            right_mask = ~left_mask
+            y_left = y_N[left_mask]
+            y_right = y_N[right_mask]
+            
+            if len(y_left) < MIN_SAMPLES_LEAF or len(y_right) < MIN_SAMPLES_LEAF:
+                total_cost_V[v] = np.inf
+                continue
+            
+            left_mean = np.mean(y_left) if len(y_left) > 0 else 0
+            right_mean = np.mean(y_right) if len(y_right) > 0 else 0
+            
+            left_cost = np.sum((y_left - left_mean) ** 2)
+            right_cost = np.sum((y_right - right_mean) ** 2)
+            
+            total_cost = left_cost + right_cost
+            total_cost_V[v] = total_cost
+            left_yhat_V[v] = left_mean
+            right_yhat_V[v] = right_mean
 
         # Check if there is any split that improves our cost or predictions.
         # If not, all splits will have same cost and we should just not split.
@@ -134,7 +153,7 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
             continue
         
         # TODO pick out the split candidate that has best cost
-        chosen_v_id = -1 # TODO fixme
+        chosen_v_id = np.argmin(total_cost_V) # TODO fixme
         cost_F[f] = total_cost_V[chosen_v_id]
         thresh_val_F[f] = possib_xthresh_V[chosen_v_id]
 
@@ -154,8 +173,8 @@ def select_best_binary_split(x_NF, y_N, MIN_SAMPLES_LEAF=1):
     x_RF, y_R = x_NF[right_mask_N], y_N[right_mask_N]
 
     # TODO uncomment below to verify your cost computation
-    # left_cost = np.sum(np.square(y_L - np.mean(y_L)))
-    # right_cost = np.sum(np.square(y_R - np.mean(y_R)))
-    # assert np.allclose(cost_F[best_feat_id], left_cost + right_cost)
+    left_cost = np.sum(np.square(y_L - np.mean(y_L)))
+    right_cost = np.sum(np.square(y_R - np.mean(y_R)))
+    assert np.allclose(cost_F[best_feat_id], left_cost + right_cost)
 
     return (best_feat_id, best_thresh_val, x_LF, y_L, x_RF, y_R)
