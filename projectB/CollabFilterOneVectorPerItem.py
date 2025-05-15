@@ -15,7 +15,7 @@ from AbstractBaseCollabFilterSGD import AbstractBaseCollabFilterSGD
 from train_valid_test_loader import load_train_valid_test_datasets
 
 # Some packages you might need (uncomment as necessary)
-## import pandas as pd
+import pandas as pd
 ## import matplotlib
 
 # No other imports specific to ML (e.g. scikit) needed!
@@ -55,10 +55,10 @@ class CollabFilterOneVectorPerItem(AbstractBaseCollabFilterSGD):
         # TIP: use self.n_factors to access number of hidden dimensions
         self.param_dict = dict(
             mu=ag_np.ones(1),
-            b_per_user=ag_np.ones(1), # FIX dimensionality
-            c_per_item=ag_np.ones(1), # FIX dimensionality
-            U=0.001 * random_state.randn(1), # FIX dimensionality
-            V=0.001 * random_state.randn(1), # FIX dimensionality
+            b_per_user=ag_np.ones(n_users), # FIX dimensionality
+            c_per_item=ag_np.ones(n_items), # FIX dimensionality
+            U=0.001 * random_state.randn(n_users, self.n_factors), # FIX dimensionality
+            V=0.001 * random_state.randn(n_items, self.n_factors), # FIX dimensionality
             )
 
 
@@ -81,8 +81,12 @@ class CollabFilterOneVectorPerItem(AbstractBaseCollabFilterSGD):
             Entry n is for the n-th pair of user_id, item_id values provided.
         '''
         # TODO: Update with actual prediction logic
-        N = user_id_N.size
-        yhat_N = ag_np.ones(N)
+        user_bias = b_per_user[user_id_N]
+        item_bias = c_per_item[item_id_N]
+        user_factors = U[user_id_N, :]
+        item_factors = V[item_id_N, :]
+        interaction = ag_np.sum(user_factors * item_factors, axis=1)
+        yhat_N = mu + user_bias + item_bias + interaction
         return yhat_N
 
 
@@ -103,7 +107,13 @@ class CollabFilterOneVectorPerItem(AbstractBaseCollabFilterSGD):
         # TIP: use self.alpha to access regularization strength
         y_N = data_tuple[2]
         yhat_N = self.predict(data_tuple[0], data_tuple[1], **param_dict)
-        loss_total = 0.0
+        squared_error = ag_np.sum((y_N - yhat_N) ** 2)
+        U = param_dict['U']
+        V = param_dict['V']
+        reg_U = ag_np.sum(U ** 2)
+        reg_V = ag_np.sum(V ** 2)
+        reg_term = self.alpha * (reg_U + reg_V)
+        loss_total = squared_error + reg_term
         return loss_total    
 
 
